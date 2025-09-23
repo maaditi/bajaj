@@ -1,0 +1,452 @@
+// pom.xml
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 
+         http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>3.1.5</version>
+        <relativePath/>
+    </parent>
+
+    <groupId>com.example</groupId>
+    <artifactId>webhook-app</artifactId>
+    <version>1.0.0</version>
+    <packaging>jar</packaging>
+
+    <properties>
+        <java.version>17</java.version>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-webflux</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+                <configuration>
+                    <executable>true</executable>
+                    <finalName>webhook-app</finalName>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+</project>
+
+// src/main/java/com/example/webhookapp/WebhookApplication.java
+package com.example.webhookapp;
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+
+@SpringBootApplication
+public class WebhookApplication {
+    public static void main(String[] args) {
+        SpringApplication.run(WebhookApplication.class, args);
+    }
+}
+
+// src/main/java/com/example/webhookapp/dto/WebhookRequest.java
+package com.example.webhookapp.dto;
+
+import com.fasterxml.jackson.annotation.JsonProperty;
+
+public class WebhookRequest {
+    private String name;
+    
+    @JsonProperty("regNo")
+    private String regNo;
+    
+    private String email;
+
+    public WebhookRequest() {}
+
+    public WebhookRequest(String name, String regNo, String email) {
+        this.name = name;
+        this.regNo = regNo;
+        this.email = email;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public String getRegNo() {
+        return regNo;
+    }
+
+    public void setRegNo(String regNo) {
+        this.regNo = regNo;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
+    }
+}
+
+// src/main/java/com/example/webhookapp/dto/WebhookResponse.java
+package com.example.webhookapp.dto;
+
+public class WebhookResponse {
+    private String webhook;
+    private String accessToken;
+
+    public WebhookResponse() {}
+
+    public String getWebhook() {
+        return webhook;
+    }
+
+    public void setWebhook(String webhook) {
+        this.webhook = webhook;
+    }
+
+    public String getAccessToken() {
+        return accessToken;
+    }
+
+    public void setAccessToken(String accessToken) {
+        this.accessToken = accessToken;
+    }
+}
+
+// src/main/java/com/example/webhookapp/dto/SolutionRequest.java
+package com.example.webhookapp.dto;
+
+public class SolutionRequest {
+    private String finalQuery;
+
+    public SolutionRequest() {}
+
+    public SolutionRequest(String finalQuery) {
+        this.finalQuery = finalQuery;
+    }
+
+    public String getFinalQuery() {
+        return finalQuery;
+    }
+
+    public void setFinalQuery(String finalQuery) {
+        this.finalQuery = finalQuery;
+    }
+}
+
+// src/main/java/com/example/webhookapp/service/SqlProblemSolver.java
+package com.example.webhookapp.service;
+
+import org.springframework.stereotype.Service;
+
+@Service
+public class SqlProblemSolver {
+    
+    /**
+     * Solves SQL problem based on registration number
+     * @param regNo Registration number
+     * @return SQL query solution
+     */
+    public String solveProblem(String regNo) {
+        // Extract last two digits
+        String lastTwoDigits = regNo.substring(regNo.length() - 2);
+        int lastTwoDigitsInt = Integer.parseInt(lastTwoDigits);
+        
+        if (lastTwoDigitsInt % 2 == 1) {
+            // Odd - Question 1 solution
+            return getQuestion1Solution();
+        } else {
+            // Even - Question 2 solution
+            return getQuestion2Solution();
+        }
+    }
+    
+    /**
+     * Solution for Question 1 (Odd registration numbers)
+     * Find the highest salary that was credited to an employee, but only for transactions 
+     * that were not made on the 1st day of any month. Along with the salary, extract 
+     * employee data like name, age and department.
+     */
+    private String getQuestion1Solution() {
+        return "SELECT " +
+               "    p.AMOUNT AS SALARY, " +
+               "    CONCAT(e.FIRST_NAME, ' ', e.LAST_NAME) AS NAME, " +
+               "    FLOOR(DATEDIFF(CURDATE(), e.DOB) / 365.25) AS AGE, " +
+               "    d.DEPARTMENT_NAME " +
+               "FROM PAYMENTS p " +
+               "INNER JOIN EMPLOYEE e ON p.EMP_ID = e.EMP_ID " +
+               "INNER JOIN DEPARTMENT d ON e.DEPARTMENT = d.DEPARTMENT_ID " +
+               "WHERE DAY(p.PAYMENT_TIME) != 1 " +
+               "ORDER BY p.AMOUNT DESC " +
+               "LIMIT 1";
+    }
+    
+    /**
+     * Solution for Question 2 (Even registration numbers)
+     * Based on typical SQL interview questions, this could be related to:
+     * - Complex aggregations
+     * - Subqueries or CTEs
+     * - Date/time functions
+     */
+    private String getQuestion2Solution() {
+        // Example SQL for a common interview question
+        // This is a placeholder - you would need to view the actual question
+        return "WITH monthly_sales AS (" +
+               "SELECT EXTRACT(MONTH FROM sale_date) as month, " +
+               "       EXTRACT(YEAR FROM sale_date) as year, " +
+               "       SUM(amount) as total_sales " +
+               "FROM sales " +
+               "GROUP BY EXTRACT(YEAR FROM sale_date), EXTRACT(MONTH FROM sale_date)" +
+               ") " +
+               "SELECT year, month, total_sales, " +
+               "       LAG(total_sales) OVER (ORDER BY year, month) as prev_month_sales " +
+               "FROM monthly_sales " +
+               "ORDER BY year, month";
+    }
+}
+
+// src/main/java/com/example/webhookapp/service/WebhookService.java
+package com.example.webhookapp.service;
+
+import com.example.webhookapp.dto.SolutionRequest;
+import com.example.webhookapp.dto.WebhookRequest;
+import com.example.webhookapp.dto.WebhookResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.*;
+import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
+
+@Service
+public class WebhookService {
+    
+    private static final Logger logger = LoggerFactory.getLogger(WebhookService.class);
+    
+    private static final String GENERATE_WEBHOOK_URL = "https://bfhldevapigw.healthrx.co.in/hiring/generateWebhook/JAVA";
+    private static final String SUBMIT_SOLUTION_URL = "https://bfhldevapigw.healthrx.co.in/hiring/testWebhook/JAVA";
+    
+    @Autowired
+    private SqlProblemSolver sqlProblemSolver;
+    
+    private final RestTemplate restTemplate;
+    
+    public WebhookService() {
+        this.restTemplate = new RestTemplate();
+    }
+    
+    /**
+     * Generates webhook and returns response containing webhook URL and access token
+     */
+    public WebhookResponse generateWebhook() {
+        WebhookRequest request = new WebhookRequest("John Doe", "REG12347", "john@example.com");
+        
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        
+        HttpEntity<WebhookRequest> entity = new HttpEntity<>(request, headers);
+        
+        try {
+            logger.info("Generating webhook...");
+            ResponseEntity<WebhookResponse> response = restTemplate.postForEntity(
+                GENERATE_WEBHOOK_URL, entity, WebhookResponse.class);
+            
+            if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
+                logger.info("Webhook generated successfully");
+                return response.getBody();
+            } else {
+                logger.error("Failed to generate webhook: {}", response.getStatusCode());
+                throw new RuntimeException("Failed to generate webhook");
+            }
+        } catch (Exception e) {
+            logger.error("Error generating webhook: {}", e.getMessage());
+            throw new RuntimeException("Error generating webhook", e);
+        }
+    }
+    
+    /**
+     * Submits the SQL solution to the webhook
+     */
+    public void submitSolution(String sqlQuery, String accessToken) {
+        SolutionRequest solutionRequest = new SolutionRequest(sqlQuery);
+        
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.setBearerAuth(accessToken);
+        
+        HttpEntity<SolutionRequest> entity = new HttpEntity<>(solutionRequest, headers);
+        
+        try {
+            logger.info("Submitting solution...");
+            ResponseEntity<String> response = restTemplate.postForEntity(
+                SUBMIT_SOLUTION_URL, entity, String.class);
+            
+            if (response.getStatusCode() == HttpStatus.OK) {
+                logger.info("Solution submitted successfully: {}", response.getBody());
+            } else {
+                logger.error("Failed to submit solution: {}", response.getStatusCode());
+            }
+        } catch (Exception e) {
+            logger.error("Error submitting solution: {}", e.getMessage());
+        }
+    }
+    
+    /**
+     * Main workflow: Generate webhook, solve problem, and submit solution
+     */
+    public void executeWorkflow() {
+        try {
+            // Step 1: Generate webhook
+            WebhookResponse webhookResponse = generateWebhook();
+            
+            // Step 2: Solve SQL problem based on registration number
+            String regNo = "REG12347"; // Using the same regNo as in the request
+            String sqlSolution = sqlProblemSolver.solveProblem(regNo);
+            
+            logger.info("Generated SQL solution: {}", sqlSolution);
+            
+            // Step 3: Submit solution
+            submitSolution(sqlSolution, webhookResponse.getAccessToken());
+            
+        } catch (Exception e) {
+            logger.error("Workflow execution failed: {}", e.getMessage());
+        }
+    }
+}
+
+// src/main/java/com/example/webhookapp/config/StartupRunner.java
+package com.example.webhookapp.config;
+
+import com.example.webhookapp.service.WebhookService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.CommandLineRunner;
+import org.springframework.stereotype.Component;
+
+@Component
+public class StartupRunner implements CommandLineRunner {
+    
+    private static final Logger logger = LoggerFactory.getLogger(StartupRunner.class);
+    
+    @Autowired
+    private WebhookService webhookService;
+    
+    @Override
+    public void run(String... args) throws Exception {
+        logger.info("Application started - executing webhook workflow");
+        webhookService.executeWorkflow();
+        logger.info("Webhook workflow completed");
+    }
+}
+
+// src/main/resources/application.properties
+# Application configuration
+spring.application.name=webhook-app
+server.port=8080
+
+# Logging configuration
+logging.level.com.example.webhookapp=INFO
+logging.level.org.springframework.web.client.RestTemplate=DEBUG
+
+# HTTP client configuration
+spring.http.timeout.connection=30s
+spring.http.timeout.read=30s
+
+// README.md
+# Webhook Application
+
+This Spring Boot application implements the specified webhook workflow for the BFHL coding challenge.
+
+## Features
+- Automatically generates webhook on application startup
+- Solves SQL problems based on registration number (odd/even logic)
+- Submits solutions using JWT authentication
+- Uses RestTemplate for HTTP communication
+
+## Problem Solution
+The application solves the following SQL problem for odd registration numbers:
+
+**Problem**: Find the highest salary that was credited to an employee, but only for transactions that were not made on the 1st day of any month. Along with the salary, extract employee data like name, age and department.
+
+**Solution**: 
+```sql
+SELECT 
+    p.AMOUNT AS SALARY, 
+    CONCAT(e.FIRST_NAME, ' ', e.LAST_NAME) AS NAME, 
+    FLOOR(DATEDIFF(CURDATE(), e.DOB) / 365.25) AS AGE, 
+    d.DEPARTMENT_NAME 
+FROM PAYMENTS p 
+INNER JOIN EMPLOYEE e ON p.EMP_ID = e.EMP_ID 
+INNER JOIN DEPARTMENT d ON e.DEPARTMENT = d.DEPARTMENT_ID 
+WHERE DAY(p.PAYMENT_TIME) != 1 
+ORDER BY p.AMOUNT DESC 
+LIMIT 1
+```
+
+## How it works
+1. On startup, sends POST request to generate webhook
+2. Determines question type based on last two digits of registration number (47 = odd = Question 1)
+3. Solves the SQL problem to find highest salary not paid on 1st day of month
+4. Submits solution to webhook URL with JWT token
+
+## Build and Run
+```bash
+# Build the application
+mvn clean package
+
+# Run the JAR file
+java -jar target/webhook-app.jar
+```
+
+## Project Structure
+- `WebhookApplication.java` - Main Spring Boot application class
+- `WebhookService.java` - Handles webhook generation and solution submission
+- `SqlProblemSolver.java` - Contains SQL problem solutions
+- `StartupRunner.java` - CommandLineRunner to execute workflow on startup
+- DTOs for request/response mapping
+
+## Configuration
+- Application runs on port 8080
+- Logging configured for debugging HTTP requests
+- Timeouts set for HTTP connections
+- Registration number "REG12347" (ends in 47 = odd) triggers Question 1
+
+## Expected Result
+Based on the provided data, the query should return:
+- SALARY: 74998.00 (highest salary not paid on 1st day)
+- NAME: Emily Brown
+- AGE: 32 (calculated from DOB 1992-11-30)
+- DEPARTMENT_NAME: Sales
